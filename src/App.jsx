@@ -45,7 +45,7 @@ const GYMMO_LOGO =
 // "ที่ใช้บ่อย" — แสดงตรงหน้าแรกเลย ไม่ต้องคลิกเข้าหมวด
 const frequentItems = [
   {
-    label: "คำนวณค่าคอม_PT",
+    label: "คำนวณค่าคอม",
     description: "คอมมิชชั่น PT ต่อลูกค้า",
     icon: TrendingUp,
     href: "https://docs.google.com/spreadsheets/d/1cI4VGPDGgv1vvqWy2Rrtv7fTbBygAi_l9eaAl78M8hs/edit",
@@ -119,12 +119,6 @@ const categories = [
         description: "ข้อมูลดิบหลังปิดการขาย",
         icon: ClipboardList,
         href: "https://docs.google.com/spreadsheets/d/1OXyNdqlLjvT1lvfE-uIZSTaVqaUoe6VfKUgaY6xDjc0/edit",
-      },
-      {
-        label: "รายการเบิกเงิน",
-        description: "สรุปรายการเบิกเงินทั้งหมด",
-        icon: Receipt,
-        href: "https://docs.google.com/spreadsheets/u/1/d/1VilTSeJGCDTw6mnEbZGVw9GPjbXwPNTKinElossaEPc/htmlview",
       },
     ],
   },
