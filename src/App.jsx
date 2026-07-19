@@ -12,6 +12,9 @@ import {
   FileSpreadsheet,
   GraduationCap,
   ChevronLeft,
+  Megaphone,
+  Tag,
+  Image,
 } from "lucide-react";
 
 const GOLD = "#C9A227";
@@ -170,6 +173,26 @@ const categories = [
         description: "เอกสารสัญญาแพ็กเกจ PT",
         icon: FileSignature,
         href: "https://docs.google.com/document/d/1nkHuz8ydD5jjrCZD_2zGuK_RacNCnt_RdHuP3fEzrps/edit?usp=sharing",
+      },
+    ],
+  },
+  {
+    id: "marketing",
+    label: "การตลาด",
+    description: "ราคาแพ็กเกจ + คลัง Media",
+    icon: Megaphone,
+    items: [
+      {
+        label: "ราคาแพคเกจ/โปรโมชั่น",
+        description: "ดูราคาและโปรโมชั่นล่าสุด",
+        icon: Tag,
+        href: "https://canva.link/mdl0phvv8gblmcy",
+      },
+      {
+        label: "คลัง Media",
+        description: "ส่งงานคอนเทนต์ / ใช้ทำการตลาด",
+        icon: Image,
+        href: "https://drive.google.com/drive/folders/1eHAvUBqEpAz5QBnoBJ1XGnCxbBXZIhfs?usp=share_link",
       },
     ],
   },
