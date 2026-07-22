@@ -15,6 +15,9 @@ import {
   Megaphone,
   Tag,
   Image,
+  ListChecks,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 
 const GOLD = "#C9A227";
@@ -251,11 +254,233 @@ function IconCard({ icon: Icon, label, description, onClick, href, highlight }) 
   );
 }
 
+// ===== Task Tracker (staff) — อัปเดตสถานะได้อย่างเดียว ห้ามแก้/ลบ/มอบหมายใหม่ =====
+// ใช้ Google Sheet เดียวกับ Owner Console ผ่าน Apps Script Web App เดียวกัน (WEB_APP_URL)
+const TASK_STATUSES = ["ต้องทำ", "กำลังทำ", "เสร็จแล้ว"];
+const TASK_EMPLOYEES = ["ทั้งหมด", "ต้า", "Copter", "เมล", "เพชร", "ดีม", "เกม", "เป้", "จีจี้"];
+const STATUS_STYLE = {
+  ต้องทำ: { bg: "#FEF8E9", border: "#F3E3B0", text: "#B7791F", dot: "#D69E2E" },
+  กำลังทำ: { bg: "#F2EFFB", border: "#DCD3F5", text: "#6B46C1", dot: "#8B5CF6" },
+  เสร็จแล้ว: { bg: "#EAF7EE", border: "#C6E9CF", text: "#15803D", dot: "#22C55E" },
+};
+const TASK_CATEGORY_COLORS = {
+  ซ่อมบำรุง: { bg: "#FEE2E2", text: "#B91C1C" },
+  ทั่วไป: { bg: "#F3F4F6", text: "#4B5563" },
+  การตลาด: { bg: "#EDE9FE", text: "#6D28D9" },
+  ความสะอาด: { bg: "#DBEAFE", text: "#1D4ED8" },
+  เอกสาร: { bg: "#FCE7F3", text: "#BE185D" },
+};
+const TASK_CATEGORY_DEFAULT = { bg: `${GOLD}1A`, text: GOLD_DARK };
+
+// mock data — เดียวกับฝั่ง Owner (พอต่อ Web App จริงจะดึงจาก Sheet เดียวกันทั้งคู่)
+const MOCK_TASKS = [
+  { taskId: "T1", title: "ซ่อมลู่วิ่งตัวที่ 3", category: "ซ่อมบำรุง", assignees: ["ต้า"], status: "ต้องทำ", dueDate: "2026-07-20" },
+  { taskId: "T2", title: "สั่งซื้อผ้าเช็ดตัวเพิ่ม", category: "ทั่วไป", assignees: ["เมล"], status: "ต้องทำ", dueDate: "2026-07-25" },
+  { taskId: "T3", title: "อัปเดตราคาแพ็กเกจในเพจ", category: "การตลาด", assignees: ["จีจี้", "เมล"], status: "กำลังทำ", dueDate: "2026-07-22" },
+  { taskId: "T4", title: "ทำความสะอาดเครื่องปรับอากาศ", category: "ความสะอาด", assignees: ["เกม"], status: "กำลังทำ", dueDate: "2026-07-18" },
+  { taskId: "T5", title: "เตรียมเอกสารต่อสัญญาเช่า", category: "เอกสาร", assignees: ["ต้า"], status: "เสร็จแล้ว", dueDate: "2026-07-15" },
+];
+
+function isTaskOverdue(dueDate, status) {
+  if (status === "เสร็จแล้ว") return false;
+  return new Date(dueDate) < new Date(new Date().toDateString());
+}
+
+function fmtTaskDate(d) {
+  const date = new Date(d);
+  return date.toLocaleDateString("th-TH", { day: "numeric", month: "short" });
+}
+
+// การ์ดฝั่ง Staff — เห็นข้อมูลครบ แต่แก้ได้แค่สถานะเท่านั้น (ไม่มีดินสอ, ไม่มีปุ่มลบ, ไม่มีตัวเลือก assignee)
+function StaffTaskCard({ task, onStatusChange }) {
+  const overdue = isTaskOverdue(task.dueDate, task.status);
+  const catColor = TASK_CATEGORY_COLORS[task.category] || TASK_CATEGORY_DEFAULT;
+  const assignees = task.assignees || [];
+  return (
+    <div style={{ background: "#FFFFFF", borderRadius: 16, padding: "14px 14px 12px", marginBottom: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.4, color: "#111318" }}>{task.title}</div>
+
+      <div style={{ marginTop: 8 }}>
+        <span style={{ fontSize: 10.5, fontWeight: 700, color: catColor.text, background: catColor.bg, padding: "3px 9px", borderRadius: 8 }}>
+          {task.category}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 14 }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 11,
+            color: overdue ? "#DC2626" : "#9CA3AF",
+            fontWeight: overdue ? 700 : 500,
+          }}
+        >
+          {overdue ? <AlertCircle size={12} /> : <Clock size={12} />}
+          {fmtTaskDate(task.dueDate)}
+        </span>
+        {/* แสดงคนที่ถูกมอบหมาย — ดูอย่างเดียว แก้ไม่ได้ */}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          {assignees.length === 0 ? (
+            <span style={{ fontSize: 11, color: "#9CA3AF" }}>ไม่ระบุ</span>
+          ) : (
+            <>
+              <div style={{ display: "flex" }}>
+                {assignees.slice(0, 3).map((name, i) => (
+                  <div
+                    key={name}
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: "50%",
+                      background: GOLD_DARK,
+                      color: "#FFFFFF",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      border: "2px solid #FFFFFF",
+                      marginLeft: i === 0 ? 0 : -7,
+                    }}
+                  >
+                    {name.charAt(0)}
+                  </div>
+                ))}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: GOLD_DARK, marginLeft: 6, whiteSpace: "nowrap" }}>
+                {assignees.length === 1 ? assignees[0] : `${assignees.length} คน`}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* สิทธิ์เดียวที่พนักงานทำได้ — เปลี่ยนสถานะ */}
+      <div style={{ display: "flex", gap: 5, marginTop: 10 }}>
+        {TASK_STATUSES.map((s) => {
+          const active = task.status === s;
+          return (
+            <button
+              key={s}
+              onClick={() => onStatusChange(task.taskId, s)}
+              style={{
+                flex: 1,
+                fontSize: 9.5,
+                padding: "6px 0",
+                borderRadius: 7,
+                border: "none",
+                background: active ? "#11131812" : "#FAFAF8",
+                color: active ? "#111318" : "#9CA3AF",
+                fontWeight: active ? 700 : 500,
+                cursor: "pointer",
+              }}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StaffTaskTrackerPage({ onBack }) {
+  const [tasks, setTasks] = useState(MOCK_TASKS);
+  const [filterEmployee, setFilterEmployee] = useState("ทั้งหมด");
+
+  const handleStatusChange = (taskId, status) => {
+    // ของจริง: fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: 'updateStatus', taskId, status }) })
+    // ใช้ Web App เดียวกับฝั่ง Owner — แก้ได้แค่ status เท่านั้น ไม่มี action อื่นให้เรียกใช้ฝั่งนี้
+    setTasks(tasks.map((t) => (t.taskId === taskId ? { ...t, status } : t)));
+  };
+
+  const filtered = filterEmployee === "ทั้งหมด" ? tasks : tasks.filter((t) => (t.assignees || []).includes(filterEmployee));
+
+  return (
+    <div className="wrap" style={{ marginTop: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+        <button
+          onClick={onBack}
+          className="tap"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 34,
+            height: 34,
+            borderRadius: "50%",
+            background: "#FFFFFF",
+            border: "1px solid #ECE9E1",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <ChevronLeft size={18} color={GOLD_DARK} />
+        </button>
+        <div style={{ fontWeight: 700, fontSize: 18 }}>Task Tracker</div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 18, overflowX: "auto", paddingBottom: 2 }}>
+        {TASK_EMPLOYEES.map((name) => (
+          <button
+            key={name}
+            onClick={() => setFilterEmployee(name)}
+            style={{
+              flexShrink: 0,
+              fontSize: 11.5,
+              padding: "6px 13px",
+              borderRadius: 20,
+              border: filterEmployee === name ? `1px solid ${GOLD_DARK}` : "1px solid #ECE9E1",
+              background: filterEmployee === name ? GOLD_DARK : "#FFFFFF",
+              color: filterEmployee === name ? "#FFFFFF" : "#9CA3AF",
+              fontWeight: filterEmployee === name ? 700 : 500,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {name}
+          </button>
+        ))}
+      </div>
+
+      <div className="kanbanGrid">
+        {TASK_STATUSES.map((status) => {
+          const columnTasks = filtered.filter((t) => t.status === status);
+          const s = STATUS_STYLE[status];
+          return (
+            <div key={status} style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 18, padding: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, padding: "0 2px" }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: s.text }}>{status}</span>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: s.text, background: "#FFFFFF", padding: "2px 8px", borderRadius: 20, marginLeft: "auto" }}>
+                  {columnTasks.length}
+                </span>
+              </div>
+              {columnTasks.length === 0 ? (
+                <div style={{ fontSize: 11.5, color: "#B8B4AE", padding: "28px 0", textAlign: "center" }}>ไม่มีงาน</div>
+              ) : (
+                columnTasks.map((task) => <StaffTaskCard key={task.taskId} task={task} onStatusChange={handleStatusChange} />)
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: 10.5, color: "#9CA3AF", textAlign: "center", marginTop: 24 }}>
+        * อัปเดตได้แค่สถานะงาน — เพิ่ม/แก้ไข/มอบหมายงานทำได้จาก Owner Console เท่านั้น
+      </div>
+    </div>
+  );
+}
+
 export default function OpsHubStaffResponsive() {
   const [clubSales, setClubSales] = useState(null);
   const [ptSales, setPtSales] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [page, setPage] = useState("home"); // "home" | "tasks"
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
@@ -335,6 +560,7 @@ export default function OpsHubStaffResponsive() {
         .dashValue { font-size: 13px; white-space: nowrap; }
         .labelFull { display: none; }
         .labelShort { display: inline; }
+        .kanbanGrid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
         @media (min-width: 640px) {
           .avatar { width: 40px; height: 40px; }
@@ -359,6 +585,7 @@ export default function OpsHubStaffResponsive() {
           .tap:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
           .wrap { padding: 0 40px; }
           .dashCard { padding: 8px 16px; }
+          .kanbanGrid { grid-template-columns: repeat(3, 1fr); }
         }
       `}</style>
 
@@ -400,6 +627,25 @@ export default function OpsHubStaffResponsive() {
             </div>
           </div>
 
+          <button
+            onClick={() => setPage("tasks")}
+            className="tap"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 30,
+              height: 30,
+              borderRadius: "50%",
+              background: "#FFFFFF14",
+              border: "1px solid #FFFFFF2A",
+              cursor: "pointer",
+              flexShrink: 0,
+            }}
+          >
+            <ListChecks size={15} color="#FFFFFF" />
+          </button>
+
           {/* Mini dashboard: ยอดขายคลับ + ยอดขายทีม PT — อยู่แถวเดียวกับหัวข้อ ไม่ตัดบรรทัด */}
           <div className="dashRow">
             <div className="dashCard tap" style={{ background: "#FFFFFF14", border: "1px solid #FFFFFF2A", borderRadius: 12 }}>
@@ -430,6 +676,9 @@ export default function OpsHubStaffResponsive() {
         </div>
       </div>
 
+      {page === "tasks" ? (
+        <StaffTaskTrackerPage onBack={() => setPage("home")} />
+      ) : (
       <div className="wrap">
         {activeCategory === null ? (
           <>
@@ -478,6 +727,50 @@ export default function OpsHubStaffResponsive() {
                   <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>สมาชิก · ธุรกรรม · บิลลิ่ง</div>
                 </div>
               </a>
+            </div>
+
+            {/* Progression — เป้าหมายคลับ / PT เดือนนี้ */}
+            <div style={{ marginTop: 24 }}>
+              <div className="sectionTitle" style={{ fontWeight: 700, marginBottom: 10 }}>
+                Progression เดือนนี้
+              </div>
+              <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, padding: "16px 18px" }}>
+                {(() => {
+                  const CLUB_TARGET = 1000000;
+                  const PT_TARGET = 480000;
+                  const clubVal = clubSales || 0;
+                  const ptVal = ptSales || 0;
+                  const clubPct = Math.min(100, Math.round((clubVal / CLUB_TARGET) * 100));
+                  const ptPct = Math.min(100, Math.round((ptVal / PT_TARGET) * 100));
+                  return (
+                    <>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>คลับรวม</span>
+                        <span style={{ fontSize: 12, color: "#9CA3AF" }}>
+                          <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{loading ? "…" : fmtBaht(clubVal)}</b> / {fmtBaht(CLUB_TARGET)}
+                        </span>
+                      </div>
+                      <div style={{ height: 10, background: "#F0EEE8", borderRadius: 6, overflow: "hidden" }}>
+                        <div style={{ width: `${clubPct}%`, height: "100%", background: `linear-gradient(90deg, ${GOLD_DARK}, ${GOLD})`, borderRadius: 6 }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>ทำได้แล้ว {clubPct}% ของเป้า</div>
+
+                      <div style={{ height: 1, background: "#F0EEE8", margin: "16px 0" }} />
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>PT</span>
+                        <span style={{ fontSize: 12, color: "#9CA3AF" }}>
+                          <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{loading ? "…" : fmtBaht(ptVal)}</b> / {fmtBaht(PT_TARGET)}
+                        </span>
+                      </div>
+                      <div style={{ height: 10, background: "#F0EEE8", borderRadius: 6, overflow: "hidden" }}>
+                        <div style={{ width: `${ptPct}%`, height: "100%", background: `linear-gradient(90deg, ${GOLD_DARK}, ${GOLD})`, borderRadius: 6 }} />
+                      </div>
+                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>ทำได้แล้ว {ptPct}% ของเป้า PT</div>
+                    </>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* Leaderboard ยอดขาย PT ของเดือนนี้ — อันดับ 1-3 ใส่ Gold/Silver/Bronze */}
@@ -623,6 +916,7 @@ export default function OpsHubStaffResponsive() {
           </>
         )}
       </div>
+      )}
     </div>
   );
 }
