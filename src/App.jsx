@@ -430,52 +430,59 @@ export default function OpsHubStaffResponsive() {
               </div>
             </div>
           </div>
-
-          {/* แถวปุ่มลัด — Gymmo Console */}
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <a
-              href="https://console.gymmo.app/th"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="tap"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 7,
-                flex: 1,
-                textDecoration: "none",
-                background: "#FFFFFF",
-                borderRadius: 12,
-                padding: "6px 10px",
-              }}
-            >
-              <div
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  background: "#FFFFFF",
-                  border: "1px solid #ECE9E1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  overflow: "hidden",
-                  padding: 2,
-                }}
-              >
-                <img src={GYMMO_LOGO} alt="Gymmo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-              </div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#111318", whiteSpace: "nowrap" }}>Gymmo Console</span>
-            </a>
-          </div>
         </div>
       </div>
 
       <div className="wrap">
         {activeCategory === null ? (
           <>
+            {/* Gymmo Console — ลิงก์เดียว กดครั้งเดียวเข้าเลย */}
+            <div style={{ marginTop: 24 }}>
+              <a
+                href="https://console.gymmo.app/th"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tap"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  textDecoration: "none",
+                  color: "#111318",
+                  background: "#FFFFFF",
+                  border: `1px solid ${GOLD}55`,
+                  borderRadius: 20,
+                  padding: "16px 18px",
+                  boxShadow: "0 4px 14px rgba(201,162,39,0.15)",
+                  maxWidth: 460,
+                }}
+              >
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    background: "#FFFFFF",
+                    border: "1px solid #ECE9E1",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                    overflow: "hidden",
+                  }}
+                >
+                  <img src={GYMMO_LOGO} alt="Gymmo" style={{ width: "70%", height: "70%", objectFit: "contain" }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: GOLD_DARK, fontWeight: 700, letterSpacing: "0.03em" }}>
+                    FITNESS MANAGEMENT
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>Gymmo Console</div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>สมาชิก · ธุรกรรม · บิลลิ่ง</div>
+                </div>
+              </a>
+            </div>
+
             {/* Progression — เป้าหมายคลับ / PT เดือนนี้ */}
             <div style={{ marginTop: 24 }}>
               <div className="sectionTitle" style={{ fontWeight: 700, marginBottom: 10 }}>
