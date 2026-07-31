@@ -491,7 +491,7 @@ export default function OpsHubStaffResponsive() {
               <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, padding: "16px 18px" }}>
                 {(() => {
                   const CLUB_TARGET = 1000000;
-                  const PT_TARGET = 480000;
+                  const PT_TARGET = 500000;
                   const clubVal = clubSales || 0;
                   const ptVal = ptSales || 0;
                   const clubPct = Math.min(100, Math.round((clubVal / CLUB_TARGET) * 100));
