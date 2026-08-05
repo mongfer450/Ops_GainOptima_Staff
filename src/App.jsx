@@ -14,6 +14,7 @@ import {
   Megaphone,
   Tag,
   Image,
+  ListChecks,
 } from "lucide-react";
 
 const GOLD = "#C9A227";
@@ -257,6 +258,7 @@ export default function OpsHubStaffResponsive() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
   useEffect(() => {
@@ -436,8 +438,8 @@ export default function OpsHubStaffResponsive() {
       <div className="wrap">
         {activeCategory === null ? (
           <>
-            {/* Gymmo Console — ลิงก์เดียว กดครั้งเดียวเข้าเลย */}
-            <div style={{ marginTop: 24 }}>
+            {/* Gymmo Console + Task Tracker — ลิงก์ด่วน */}
+            <div style={{ marginTop: 24, display: "flex", gap: 10, flexWrap: "wrap" }}>
               <a
                 href="https://console.gymmo.app/th"
                 target="_blank"
@@ -454,6 +456,7 @@ export default function OpsHubStaffResponsive() {
                   borderRadius: 20,
                   padding: "16px 18px",
                   boxShadow: "0 4px 14px rgba(201,162,39,0.15)",
+                  flex: "1 1 300px",
                   maxWidth: 460,
                 }}
               >
@@ -481,17 +484,161 @@ export default function OpsHubStaffResponsive() {
                   <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>สมาชิก · ธุรกรรม · บิลลิ่ง</div>
                 </div>
               </a>
+
+              <a
+                href="https://docs.google.com/spreadsheets/d/11yqqQhfpjiDm_Trp9_8mhmP-kOXz7XrN7SZab4HL5sQ/edit?gid=1870528920#gid=1870528920"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tap"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  textDecoration: "none",
+                  color: "#111318",
+                  background: "#FFFFFF",
+                  border: "1px solid #ECE9E1",
+                  borderRadius: 20,
+                  padding: "16px 18px",
+                  flex: "1 1 300px",
+                  maxWidth: 460,
+                }}
+              >
+                <div
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 14,
+                    background: `${GOLD}1A`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <ListChecks size={22} color={GOLD_DARK} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: GOLD_DARK, fontWeight: 700, letterSpacing: "0.03em" }}>
+                    งานที่ต้องทำ
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>Task Tracker</div>
+                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>เช็คงาน · สถานะ</div>
+                </div>
+              </a>
             </div>
 
-            {/* Progression — เป้าหมายคลับ / PT เดือนนี้ */}
+            {/* ดูรายละเอียดพนักงาน — Leaderboard ยอดขาย PT (พับเก็บ default เหมือน Owner Console) */}
+            <div style={{ marginTop: 24 }}>
+              <button
+                onClick={() => setShowLeaderboard((v) => !v)}
+                className="tap"
+                style={{
+                  width: "100%",
+                  background: "#FFFFFF",
+                  border: "1px solid #ECE9E1",
+                  borderRadius: 14,
+                  padding: "10px 16px",
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: GOLD_DARK,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                {showLeaderboard ? "ซ่อนรายละเอียดพนักงาน ▲" : "ดูรายละเอียดพนักงาน ▼"}
+              </button>
+
+              {showLeaderboard && (
+                <div style={{ marginTop: 10 }}>
+                  {leaderboardLoading ? (
+                    <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
+                      กำลังโหลด…
+                    </div>
+                  ) : leaderboard.length === 0 ? (
+                    <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
+                      ยังไม่มีข้อมูลยอดขาย PT เดือนนี้
+                    </div>
+                  ) : (
+                    <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, overflow: "hidden" }}>
+                      {leaderboard.map((row, i) => {
+                        const rank = i + 1;
+                        const total = (row.mb || 0) + (row.total || 0);
+                        const medal =
+                          rank === 1
+                            ? { bg: "#FFF6DC", border: "#D4AF37", text: "#8A6D1D", label: "🥇" }
+                            : rank === 2
+                            ? { bg: "#F4F4F5", border: "#B0B3B8", text: "#5E6166", label: "🥈" }
+                            : rank === 3
+                            ? { bg: "#FBEEE3", border: "#C97F3C", text: "#8A501E", label: "🥉" }
+                            : null;
+                        return (
+                          <div
+                            key={row.name}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 12,
+                              padding: "12px 16px",
+                              borderTop: i === 0 ? "none" : "1px solid #F0EEE8",
+                              background: medal ? medal.bg : "transparent",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 30,
+                                height: 30,
+                                borderRadius: "50%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                                background: medal ? "#FFFFFF" : "#F5F5F3",
+                                border: medal ? `1.5px solid ${medal.border}` : "1px solid #ECE9E1",
+                                fontSize: medal ? 15 : 12.5,
+                                fontWeight: 700,
+                                color: medal ? medal.text : "#9CA3AF",
+                              }}
+                            >
+                              {medal ? medal.label : rank}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13.5, fontWeight: medal ? 700 : 600, color: medal ? medal.text : "#111318" }}>
+                                {row.name}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: "#9CA3AF", marginTop: 1 }}>
+                                MB {fmtBaht(row.mb)} · รวม {fmtBaht(total)}
+                              </div>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: 13.5,
+                                fontWeight: 700,
+                                fontFamily: "'Space Grotesk', sans-serif",
+                                color: medal ? medal.text : "#111318",
+                                flexShrink: 0,
+                              }}
+                            >
+                              {fmtBaht(row.total)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* เป้าหมายเดือนนี้ — ยอดขายรวม + เป้าหมาย PT */}
             <div style={{ marginTop: 24 }}>
               <div className="sectionTitle" style={{ fontWeight: 700, marginBottom: 10 }}>
-                Progression เดือนนี้
+                เป้าหมายเดือนนี้
               </div>
               <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, padding: "16px 18px" }}>
                 {(() => {
                   const CLUB_TARGET = 1000000;
-                  const PT_TARGET = 500000;
+                  const PT_TARGET = 480000;
                   const clubVal = clubSales || 0;
                   const ptVal = ptSales || 0;
                   const clubPct = Math.min(100, Math.round((clubVal / CLUB_TARGET) * 100));
@@ -499,7 +646,7 @@ export default function OpsHubStaffResponsive() {
                   return (
                     <>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>คลับรวม</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>ยอดขายรวม</span>
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
                           <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{loading ? "…" : fmtBaht(clubVal)}</b> / {fmtBaht(CLUB_TARGET)}
                         </span>
@@ -507,12 +654,12 @@ export default function OpsHubStaffResponsive() {
                       <div style={{ height: 10, background: "#F0EEE8", borderRadius: 6, overflow: "hidden" }}>
                         <div style={{ width: `${clubPct}%`, height: "100%", background: `linear-gradient(90deg, ${GOLD_DARK}, ${GOLD})`, borderRadius: 6 }} />
                       </div>
-                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>ทำได้แล้ว {clubPct}% ของเป้า</div>
+                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>ทำได้แล้ว {clubPct}% ของเป้า · เหลืออีก {fmtBaht(Math.max(0, CLUB_TARGET - clubVal))}</div>
 
                       <div style={{ height: 1, background: "#F0EEE8", margin: "16px 0" }} />
 
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>PT</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 600 }}>เป้าหมาย PT</span>
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
                           <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{loading ? "…" : fmtBaht(ptVal)}</b> / {fmtBaht(PT_TARGET)}
                         </span>
@@ -520,92 +667,11 @@ export default function OpsHubStaffResponsive() {
                       <div style={{ height: 10, background: "#F0EEE8", borderRadius: 6, overflow: "hidden" }}>
                         <div style={{ width: `${ptPct}%`, height: "100%", background: `linear-gradient(90deg, ${GOLD_DARK}, ${GOLD})`, borderRadius: 6 }} />
                       </div>
-                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>ทำได้แล้ว {ptPct}% ของเป้า PT</div>
+                      <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>ทำได้แล้ว {ptPct}% ของเป้า PT · เหลืออีก {fmtBaht(Math.max(0, PT_TARGET - ptVal))}</div>
                     </>
                   );
                 })()}
               </div>
-            </div>
-
-            {/* Leaderboard ยอดขาย PT ของเดือนนี้ — อันดับ 1-3 ใส่ Gold/Silver/Bronze */}
-            <div style={{ marginTop: 24 }}>
-              <div className="sectionTitle" style={{ fontWeight: 700, marginBottom: 10 }}>
-                Leaderboard ยอดขาย PT
-              </div>
-              {leaderboardLoading ? (
-                <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
-                  กำลังโหลด…
-                </div>
-              ) : leaderboard.length === 0 ? (
-                <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
-                  ยังไม่มีข้อมูลยอดขาย PT เดือนนี้
-                </div>
-              ) : (
-                <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, overflow: "hidden" }}>
-                  {leaderboard.map((row, i) => {
-                    const rank = i + 1;
-                    const medal =
-                      rank === 1
-                        ? { bg: "#FFF6DC", border: "#D4AF37", text: "#8A6D1D", label: "🥇" }
-                        : rank === 2
-                        ? { bg: "#F4F4F5", border: "#B0B3B8", text: "#5E6166", label: "🥈" }
-                        : rank === 3
-                        ? { bg: "#FBEEE3", border: "#C97F3C", text: "#8A501E", label: "🥉" }
-                        : null;
-                    return (
-                      <div
-                        key={row.name}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          padding: "12px 16px",
-                          borderTop: i === 0 ? "none" : "1px solid #F0EEE8",
-                          background: medal ? medal.bg : "transparent",
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: 30,
-                            height: 30,
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            background: medal ? "#FFFFFF" : "#F5F5F3",
-                            border: medal ? `1.5px solid ${medal.border}` : "1px solid #ECE9E1",
-                            fontSize: medal ? 15 : 12.5,
-                            fontWeight: 700,
-                            color: medal ? medal.text : "#9CA3AF",
-                          }}
-                        >
-                          {medal ? medal.label : rank}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: medal ? 700 : 600, color: medal ? medal.text : "#111318" }}>
-                            {row.name}
-                          </div>
-                          <div style={{ fontSize: 10.5, color: "#9CA3AF", marginTop: 1 }}>MB {fmtBaht(row.mb)}</div>
-                        </div>
-                        <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              fontFamily: "'Space Grotesk', sans-serif",
-                              color: medal ? medal.text : "#111318",
-                            }}
-                          >
-                            {fmtBaht(row.total)}
-                          </div>
-                          <div style={{ fontSize: 9.5, color: "#9CA3AF" }}>PT</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
 
             {/* ที่ใช้บ่อย — โชว์ตรงหน้าแรกเลย ไม่ต้องคลิกเข้าหมวด */}
