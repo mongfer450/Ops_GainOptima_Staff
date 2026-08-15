@@ -21,25 +21,30 @@ const GOLD = "#C9A227";
 const GOLD_DARK = "#7A5E12";
 
 const REVENUE_SHEET_ID = "11JY-u1njafkk_zIQSX4N-FQIRvvXGoTwR9MWkNkT3s4";
-
-// อ่านค่าจากช่องเดียวใน Google Sheet แบบ real-time โดยไม่ต้องมี backend
-// (ใช้ Google Visualization API — sheet ต้องแชร์เป็น "Anyone with the link can view")
-async function fetchCell(range) {
-  const sheetName = encodeURIComponent("สรุปรวม");
-  const url = `https://docs.google.com/spreadsheets/d/${REVENUE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}&range=${range}`;
-  const res = await fetch(url);
-  const text = await res.text();
-  const jsonStart = text.indexOf("{");
-  const jsonEnd = text.lastIndexOf("}");
-  const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
-  const row = json.table && json.table.rows && json.table.rows[0];
-  const cell = row && row.c && row.c[0];
-  return cell ? cell.v : null;
-}
+const EMPTY_SALES = { mb: 0, pt: 0, club: 0 };
+const CLUB_TARGET = 1500000;
+const PT_TARGET = 750000;
+const EMPLOYEE_TARGETS = [
+  { name: "ปราย", target: 150000 },
+  { name: "เมล", target: 150000 },
+  { name: "เพชร", target: 80000 },
+  { name: "ดีม", target: 80000 },
+  { name: "Copter", target: 80000 },
+];
+const LEADERBOARD_EXCLUDED_NAMES = ["Gain Optima"];
 
 function fmtBaht(n) {
   if (n === null || n === undefined) return "—";
   return "฿" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function normalizeName(name) {
+  return String(name || "").trim().toLowerCase();
+}
+
+function isLeaderboardExcludedName(name) {
+  const normalizedName = normalizeName(name);
+  return LEADERBOARD_EXCLUDED_NAMES.some((excludedName) => normalizeName(excludedName) === normalizedName);
 }
 
 // รันคำสั่ง query (SELECT ... GROUP BY ...) บนแท็บ DATA แบบ real-time ไม่ต้องมี backend
@@ -55,8 +60,32 @@ async function gvizQuery(tq) {
   return rows.map((r) => ({ label: r.c && r.c[0] ? r.c[0].v : null, value: r.c && r.c[1] ? r.c[1].v || 0 : 0 }));
 }
 
-// Leaderboard ยอดขาย PT ของเดือนนี้ — จัดอันดับตามยอด PT เท่านั้น แต่โชว์ยอด MB คู่กันด้วย
-async function fetchPTLeaderboard() {
+async function fetchMonthSales() {
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+  const rows = await gvizQuery(`SELECT E, SUM(I) WHERE C = ${month} AND D = ${year} GROUP BY E`);
+  return buildSalesSummary(rows);
+}
+
+async function fetchTodaySales() {
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const rows = await gvizQuery(`SELECT E, SUM(I) WHERE B = date '${dateStr}' GROUP BY E`);
+  return buildSalesSummary(rows);
+}
+
+function buildSalesSummary(rows) {
+  let mb = 0;
+  let pt = 0;
+  rows.forEach((r) => {
+    if (r.label === "MB") mb = r.value;
+    if (r.label === "PT") pt = r.value;
+  });
+  return { mb, pt, club: mb + pt };
+}
+
+async function fetchEmployeeSales() {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
@@ -64,14 +93,43 @@ async function fetchPTLeaderboard() {
     gvizQuery(`SELECT K, SUM(I) WHERE E = 'MB' AND C = ${month} AND D = ${year} GROUP BY K`),
     gvizQuery(`SELECT K, SUM(I) WHERE E = 'PT' AND C = ${month} AND D = ${year} GROUP BY K`),
   ]);
-  const mbMap = {};
+  const map = {};
   mbRows.forEach((r) => {
-    if (r.label) mbMap[r.label] = r.value;
+    if (!r.label) return;
+    map[r.label] = map[r.label] || { mb: 0, pt: 0 };
+    map[r.label].mb = r.value;
   });
-  return ptRows
-    .filter((r) => r.label)
-    .map((r) => ({ name: r.label, total: r.value, mb: mbMap[r.label] || 0 }))
-    .sort((a, b) => b.total - a.total);
+  ptRows.forEach((r) => {
+    if (!r.label) return;
+    map[r.label] = map[r.label] || { mb: 0, pt: 0 };
+    map[r.label].pt = r.value;
+  });
+  return Object.entries(map)
+    .map(([name, v]) => ({ name, mb: v.mb, pt: v.pt }))
+    .filter((row) => !isLeaderboardExcludedName(row.name))
+    .sort((a, b) => b.pt - a.pt);
+}
+
+function buildEmployeeTargetRows(employeeSales) {
+  const visibleSales = employeeSales.filter((row) => !isLeaderboardExcludedName(row.name));
+  const salesByName = new Map(visibleSales.map((row) => [normalizeName(row.name), row]));
+  const targetNames = new Set(EMPLOYEE_TARGETS.map((row) => normalizeName(row.name)));
+
+  const targetRows = EMPLOYEE_TARGETS.map((targetRow) => {
+    const sales = salesByName.get(normalizeName(targetRow.name));
+    return {
+      name: targetRow.name,
+      mb: sales?.mb || 0,
+      pt: sales?.pt || 0,
+      target: targetRow.target,
+    };
+  });
+
+  const extraRows = visibleSales
+    .filter((row) => !targetNames.has(normalizeName(row.name)))
+    .map((row) => ({ ...row, target: null }));
+
+  return [...targetRows, ...extraRows].sort((a, b) => (b.pt || 0) - (a.pt || 0));
 }
 
 const GYMMO_LOGO =
@@ -253,9 +311,10 @@ function IconCard({ icon: Icon, label, description, onClick, href, highlight }) 
 }
 
 export default function OpsHubStaffResponsive() {
-  const [clubSales, setClubSales] = useState(null);
-  const [ptSales, setPtSales] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [monthSales, setMonthSales] = useState(EMPTY_SALES);
+  const [todaySales, setTodaySales] = useState(EMPTY_SALES);
+  const [salesLoading, setSalesLoading] = useState(true);
+  const [todaySalesLoading, setTodaySalesLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
@@ -264,15 +323,18 @@ export default function OpsHubStaffResponsive() {
     let cancelled = false;
     async function load() {
       try {
-        const [club, pt] = await Promise.all([fetchCell("A5"), fetchCell("C7")]);
+        const [month, today] = await Promise.all([fetchMonthSales(), fetchTodaySales()]);
         if (!cancelled) {
-          setClubSales(club);
-          setPtSales(pt);
+          setMonthSales(month);
+          setTodaySales(today);
         }
       } catch (e) {
         console.error("โหลดยอดขาย real-time ไม่สำเร็จ", e);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setSalesLoading(false);
+          setTodaySalesLoading(false);
+        }
       }
     }
     load();
@@ -287,7 +349,7 @@ export default function OpsHubStaffResponsive() {
     let cancelled = false;
     async function loadLeaderboard() {
       try {
-        const list = await fetchPTLeaderboard();
+        const list = await fetchEmployeeSales();
         if (!cancelled) setLeaderboard(list);
       } catch (e) {
         console.error("โหลด leaderboard ไม่สำเร็จ", e);
@@ -414,7 +476,7 @@ export default function OpsHubStaffResponsive() {
                   </span>
                 </div>
                 <div className="dashValue" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: "#FFFFFF" }}>
-                  {loading ? "…" : fmtBaht(clubSales)}
+                  {salesLoading ? "…" : fmtBaht(monthSales.club)}
                 </div>
               </div>
               <div className="dashCard tap" style={{ background: "#FFFFFF14", border: "1px solid #FFFFFF2A", borderRadius: 12 }}>
@@ -426,7 +488,7 @@ export default function OpsHubStaffResponsive() {
                   </span>
                 </div>
                 <div className="dashValue" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: "#FFFFFF" }}>
-                  {loading ? "…" : fmtBaht(ptSales)}
+                  {salesLoading ? "…" : fmtBaht(monthSales.pt)}
                 </div>
               </div>
             </div>
@@ -527,6 +589,55 @@ export default function OpsHubStaffResponsive() {
               </a>
             </div>
 
+            {/* ยอดขายเดือนนี้ / วันนี้ — เหมือน Ops Hub */}
+            <div style={{ margin: "24px auto 0", maxWidth: 680 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
+                <div className="sectionTitle" style={{ fontWeight: 700 }}>ยอดขาย</div>
+                <div style={{ fontSize: 10, color: "#9CA3AF" }}>เดือนนี้ / วันนี้</div>
+              </div>
+              {salesLoading ? (
+                <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
+                  กำลังโหลด…
+                </div>
+              ) : (
+                <div className="grid" style={{ margin: "0 auto 12px" }}>
+                  {[
+                    { label: "คลับรวม", month: monthSales.club, today: todaySales.club },
+                    { label: "MB", month: monthSales.mb, today: todaySales.mb },
+                    { label: "PT", month: monthSales.pt, today: todaySales.pt },
+                  ].map((card) => (
+                    <div
+                      key={card.label}
+                      style={{
+                        background: "#FFFFFF",
+                        border: "1px solid #ECE9E1",
+                        borderRadius: 16,
+                        padding: "14px 12px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: 10, color: "#9CA3AF", marginBottom: 6 }}>{card.label}</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", color: GOLD_DARK }}>
+                        {fmtBaht(card.month)}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: card.today > 0 ? "#16A34A" : "#9CA3AF",
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTop: "1px solid #F0EEE8",
+                        }}
+                      >
+                        วันนี้ {todaySalesLoading ? "…" : fmtBaht(card.today)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Leaderboard ยอดขาย PT — โชว์ตลอด ไม่ต้องกดเปิด */}
             <div style={{ marginTop: 24 }}>
               <div className="sectionTitle" style={{ fontWeight: 700, marginBottom: 10 }}>
@@ -536,15 +647,17 @@ export default function OpsHubStaffResponsive() {
                 <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
                   กำลังโหลด…
                 </div>
-              ) : leaderboard.length === 0 ? (
+              ) : buildEmployeeTargetRows(leaderboard).length === 0 ? (
                 <div style={{ padding: 16, fontSize: 12.5, color: "#9CA3AF", background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16 }}>
                   ยังไม่มีข้อมูลยอดขาย PT เดือนนี้
                 </div>
               ) : (
                 <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, overflow: "hidden" }}>
-                  {leaderboard.map((row, i) => {
+                  {buildEmployeeTargetRows(leaderboard).map((row, i) => {
                     const rank = i + 1;
-                    const total = (row.mb || 0) + (row.total || 0);
+                    const total = (row.mb || 0) + (row.pt || 0);
+                    const remaining = row.target ? Math.max(0, row.target - (row.pt || 0)) : null;
+                    const overTarget = row.target ? Math.max(0, (row.pt || 0) - row.target) : null;
                     const medal =
                       rank === 1
                         ? { bg: "#FFF6DC", border: "#D4AF37", text: "#8A6D1D", label: "🥇" }
@@ -591,17 +704,23 @@ export default function OpsHubStaffResponsive() {
                             MB {fmtBaht(row.mb)} · รวม {fmtBaht(total)}
                           </div>
                         </div>
-                        <span
-                          style={{
-                            fontSize: 13.5,
-                            fontWeight: 700,
-                            fontFamily: "'Space Grotesk', sans-serif",
-                            color: medal ? medal.text : "#111318",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {fmtBaht(row.total)}
-                        </span>
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <div
+                            style={{
+                              fontSize: 13.5,
+                              fontWeight: 700,
+                              fontFamily: "'Space Grotesk', sans-serif",
+                              color: medal ? medal.text : "#111318",
+                            }}
+                          >
+                            {fmtBaht(row.pt)}
+                          </div>
+                          {row.target && (
+                            <div style={{ fontSize: 10.5, fontWeight: 700, color: remaining === 0 ? "#16A34A" : "#DC2626", marginTop: 3 }}>
+                              {remaining === 0 ? `> ${fmtBaht(overTarget)}` : `< ${fmtBaht(remaining)}`}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -616,10 +735,8 @@ export default function OpsHubStaffResponsive() {
               </div>
               <div style={{ background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, padding: "16px 18px" }}>
                 {(() => {
-                  const CLUB_TARGET = 1500000;
-                  const PT_TARGET = 750000;
-                  const clubVal = clubSales || 0;
-                  const ptVal = ptSales || 0;
+                  const clubVal = monthSales.club || 0;
+                  const ptVal = monthSales.pt || 0;
                   const clubPct = Math.min(100, Math.round((clubVal / CLUB_TARGET) * 100));
                   const ptPct = Math.min(100, Math.round((ptVal / PT_TARGET) * 100));
                   return (
@@ -627,7 +744,7 @@ export default function OpsHubStaffResponsive() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600 }}>ยอดขายรวม</span>
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
-                          <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{loading ? "…" : fmtBaht(clubVal)}</b> / {fmtBaht(CLUB_TARGET)}
+                          <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{salesLoading ? "…" : fmtBaht(clubVal)}</b> / {fmtBaht(CLUB_TARGET)}
                         </span>
                       </div>
                       <div style={{ height: 10, background: "#F0EEE8", borderRadius: 6, overflow: "hidden" }}>
@@ -640,7 +757,7 @@ export default function OpsHubStaffResponsive() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                         <span style={{ fontSize: 12.5, fontWeight: 600 }}>เป้าหมาย PT</span>
                         <span style={{ fontSize: 12, color: "#9CA3AF" }}>
-                          <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{loading ? "…" : fmtBaht(ptVal)}</b> / {fmtBaht(PT_TARGET)}
+                          <b style={{ color: GOLD_DARK, fontFamily: "'Space Grotesk', sans-serif" }}>{salesLoading ? "…" : fmtBaht(ptVal)}</b> / {fmtBaht(PT_TARGET)}
                         </span>
                       </div>
                       <div style={{ height: 10, background: "#F0EEE8", borderRadius: 6, overflow: "hidden" }}>
