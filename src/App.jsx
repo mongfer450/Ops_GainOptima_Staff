@@ -15,6 +15,13 @@ import {
   Tag,
   Image,
   ListChecks,
+  Plus,
+  Pencil,
+  Trash2,
+  Save,
+  X,
+  RotateCcw,
+  Settings,
 } from "lucide-react";
 
 const GOLD = "#C9A227";
@@ -33,6 +40,7 @@ const EMPLOYEE_TARGETS = [
   { name: "แก้ม", target: 80000 },
 ];
 const LEADERBOARD_EXCLUDED_NAMES = ["Gain Optima"];
+const LINK_STORAGE_KEY = "gainOptimaStaffLinksV1";
 
 function fmtBaht(n) {
   if (n === null || n === undefined) return "—";
@@ -136,24 +144,58 @@ function buildEmployeeTargetRows(employeeSales) {
 const GYMMO_LOGO =
   "data:image/png;base64,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";
 
+const LINK_ICONS = {
+  Dumbbell,
+  TrendingUp,
+  FileText,
+  UserPlus,
+  Wallet,
+  ClipboardList,
+  FileSignature,
+  CalendarDays,
+  FileSpreadsheet,
+  GraduationCap,
+  Megaphone,
+  Tag,
+  Image,
+  ListChecks,
+};
+
+const LINK_ICON_OPTIONS = [
+  ["TrendingUp", "กราฟ"],
+  ["CalendarDays", "ตาราง"],
+  ["GraduationCap", "คลาส"],
+  ["FileText", "ฟอร์ม"],
+  ["UserPlus", "สมาชิก"],
+  ["Dumbbell", "PT"],
+  ["Wallet", "เงิน"],
+  ["ClipboardList", "ข้อมูล"],
+  ["FileSignature", "สัญญา"],
+  ["Megaphone", "การตลาด"],
+  ["Tag", "ราคา"],
+  ["Image", "Media"],
+  ["FileSpreadsheet", "ชีท"],
+  ["ListChecks", "งาน"],
+];
+
 // "ที่ใช้บ่อย" — แสดงตรงหน้าแรกเลย ไม่ต้องคลิกเข้าหมวด
-const frequentItems = [
+const defaultFrequentItems = [
   {
     label: "คำนวณค่าคอม_PT",
     description: "คอมมิชชั่น PT ต่อลูกค้า",
-    icon: TrendingUp,
+    iconKey: "TrendingUp",
     href: "https://docs.google.com/spreadsheets/d/1cI4VGPDGgv1vvqWy2Rrtv7fTbBygAi_l9eaAl78M8hs/edit",
   },
   {
     label: "ตารางงาน",
     description: "ตารางเวรพนักงาน",
-    icon: CalendarDays,
+    iconKey: "CalendarDays",
     href: "https://docs.google.com/spreadsheets/d/1pS7S_LH7gjZ7wgWspvXSAZO9llpQVMa9TEbq3GnGvTo/edit?gid=161842714#gid=161842714",
   },
   {
     label: "เช็คชื่อครูคลาส",
     description: "เช็คชื่อเข้างานครูคลาส",
-    icon: GraduationCap,
+    iconKey: "GraduationCap",
     href: "https://docs.google.com/spreadsheets/d/1fFn0k39tzL2sqPLRfkLH6YTkkk-8hGA-QoVu8GB4EW8/edit?gid=0#gid=0",
   },
 ];
@@ -163,41 +205,41 @@ const otherCategory = {
   id: "other",
   label: "หมวดอื่นๆ",
   description: "ชีทกลางและอื่นๆ",
-  icon: FileSpreadsheet,
+  iconKey: "FileSpreadsheet",
   items: [
     {
       label: "ชีทกลาง",
       description: "ชีทกลางของทีม",
-      icon: FileSpreadsheet,
+      iconKey: "FileSpreadsheet",
       href: "https://docs.google.com/spreadsheets/d/1F1ctMoOktC04b_8kZN-XO68FJYrUWZXQ2UyT--E5uMw/edit?gid=93537741#gid=93537741",
     },
   ],
 };
 
 // หมวดหมู่ที่ต้องคลิกเข้าไปดูก่อนถึงจะเห็นลิงก์ (แบบ Owner Console)
-const categories = [
+const defaultCategories = [
   {
     id: "forms",
     label: "แบบฟอร์ม",
     description: "ฟอร์มสมัครและขอเบิกเงิน",
-    icon: FileText,
+    iconKey: "FileText",
     items: [
       {
         label: "ฟอร์มสมัคร MB",
         description: "สมัครสมาชิก MB",
-        icon: UserPlus,
+        iconKey: "UserPlus",
         href: "https://docs.google.com/forms/d/e/1FAIpQLSdpAkyz7xEH185jI7OHEH19JIut2jWloa8dm44pIzGW0EgC6g/viewform",
       },
       {
         label: "ฟอร์มสมัคร PT",
         description: "สมัครแพ็กเกจ PT",
-        icon: Dumbbell,
+        iconKey: "Dumbbell",
         href: "https://docs.google.com/forms/d/e/1FAIpQLSePqvl8De-2pAWmY61xVLQX-R0iRjUifkd_uBU18p9b5VKU3g/viewform",
       },
       {
         label: "ฟอร์มเบิกเงิน",
         description: "แบบฟอร์มขอเบิกเงิน",
-        icon: Wallet,
+        iconKey: "Wallet",
         href: "https://docs.google.com/forms/d/e/1FAIpQLScxE2zxvT-EwHF1pKdNtKByBZk54ehqwNYMEbi_CFttiI9IFQ/viewform",
       },
     ],
@@ -206,12 +248,12 @@ const categories = [
     id: "records",
     label: "หลังกรอกฟอร์ม",
     description: "ข้อมูลหลังปิดการขาย + รายการเบิก",
-    icon: ClipboardList,
+    iconKey: "ClipboardList",
     items: [
       {
         label: "หลังกรอก_PT/MB/เบิกเงิน",
         description: "ข้อมูลดิบหลังปิดการขาย",
-        icon: ClipboardList,
+        iconKey: "ClipboardList",
         href: "https://docs.google.com/spreadsheets/d/1OXyNdqlLjvT1lvfE-uIZSTaVqaUoe6VfKUgaY6xDjc0/edit",
       },
     ],
@@ -220,18 +262,18 @@ const categories = [
     id: "contracts",
     label: "สัญญา",
     description: "เอกสารสัญญา MB และ PT",
-    icon: FileSignature,
+    iconKey: "FileSignature",
     items: [
       {
         label: "สัญญา MB",
         description: "เอกสารสัญญาสมาชิก MB",
-        icon: FileSignature,
+        iconKey: "FileSignature",
         href: "https://docs.google.com/document/d/1ey2s60EYX9TZ_wu9oAQ1ZcM2Al2ULaAtWYtOLt916Yg/edit?usp=share_link",
       },
       {
         label: "สัญญา PT",
         description: "เอกสารสัญญาแพ็กเกจ PT",
-        icon: FileSignature,
+        iconKey: "FileSignature",
         href: "https://docs.google.com/document/d/1nkHuz8ydD5jjrCZD_2zGuK_RacNCnt_RdHuP3fEzrps/edit?usp=sharing",
       },
     ],
@@ -240,18 +282,18 @@ const categories = [
     id: "marketing",
     label: "การตลาด",
     description: "ราคาแพ็กเกจ + คลัง Media",
-    icon: Megaphone,
+    iconKey: "Megaphone",
     items: [
       {
         label: "ราคาแพคเกจ/โปรโมชั่น",
         description: "ดูราคาและโปรโมชั่นล่าสุด",
-        icon: Tag,
+        iconKey: "Tag",
         href: "https://canva.link/mdl0phvv8gblmcy",
       },
       {
         label: "คลัง Media",
         description: "ส่งงานคอนเทนต์ / ใช้ทำการตลาด",
-        icon: Image,
+        iconKey: "Image",
         href: "https://drive.google.com/drive/folders/1eHAvUBqEpAz5QBnoBJ1XGnCxbBXZIhfs?usp=share_link",
       },
     ],
@@ -259,10 +301,148 @@ const categories = [
   otherCategory,
 ];
 
+const defaultQuickLinks = [
+  {
+    label: "Gymmo Console",
+    eyebrow: "FITNESS MANAGEMENT",
+    description: "สมาชิก · ธุรกรรม · บิลลิ่ง",
+    iconKey: "Dumbbell",
+    logo: "gymmo",
+    href: "https://console.gymmo.app/th",
+  },
+  {
+    label: "Task Tracker",
+    eyebrow: "งานที่ต้องทำ",
+    description: "เช็คงาน · สถานะ",
+    iconKey: "ListChecks",
+    href: "https://docs.google.com/spreadsheets/d/11yqqQhfpjiDm_Trp9_8mhmP-kOXz7XrN7SZab4HL5sQ/edit?gid=1870528920#gid=1870528920",
+  },
+];
+
+const DEFAULT_LINK_CONFIG = {
+  quickLinks: defaultQuickLinks,
+  frequentItems: defaultFrequentItems,
+  categories: defaultCategories,
+};
+
+function cloneLinkConfig(config) {
+  return JSON.parse(JSON.stringify(config));
+}
+
+function getStoredLinkConfig() {
+  if (typeof window === "undefined") return cloneLinkConfig(DEFAULT_LINK_CONFIG);
+  try {
+    const stored = window.localStorage.getItem(LINK_STORAGE_KEY);
+    if (!stored) return cloneLinkConfig(DEFAULT_LINK_CONFIG);
+    const parsed = JSON.parse(stored);
+    return {
+      quickLinks: Array.isArray(parsed.quickLinks) ? parsed.quickLinks : cloneLinkConfig(defaultQuickLinks),
+      frequentItems: Array.isArray(parsed.frequentItems) ? parsed.frequentItems : cloneLinkConfig(defaultFrequentItems),
+      categories: Array.isArray(parsed.categories) ? parsed.categories : cloneLinkConfig(defaultCategories),
+    };
+  } catch {
+    return cloneLinkConfig(DEFAULT_LINK_CONFIG);
+  }
+}
+
+function getIcon(iconKey) {
+  return LINK_ICONS[iconKey] || FileSpreadsheet;
+}
+
+function emptyLinkDraft(scope, categoryId = null) {
+  return {
+    mode: "add",
+    scope,
+    categoryId,
+    index: null,
+    label: "",
+    eyebrow: "",
+    description: "",
+    href: "",
+    iconKey: "FileSpreadsheet",
+  };
+}
+
+function linkToDraft(scope, categoryId, index, item) {
+  return {
+    mode: "edit",
+    scope,
+    categoryId,
+    index,
+    label: item.label || "",
+    eyebrow: item.eyebrow || "",
+    description: item.description || "",
+    href: item.href || "",
+    iconKey: item.iconKey || "FileSpreadsheet",
+    logo: item.logo,
+  };
+}
+
+function emptyCategoryDraft() {
+  return {
+    mode: "add",
+    index: null,
+    id: "",
+    label: "",
+    description: "",
+    iconKey: "FileSpreadsheet",
+    items: [],
+  };
+}
+
+function categoryToDraft(index, category) {
+  return {
+    mode: "edit",
+    index,
+    id: category.id,
+    label: category.label || "",
+    description: category.description || "",
+    iconKey: category.iconKey || "FileSpreadsheet",
+    items: Array.isArray(category.items) ? category.items : [],
+  };
+}
+
+function makeCategoryId(label) {
+  const safeLabel = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9ก-๙]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${safeLabel || "category"}-${Date.now()}`;
+}
+
 // การ์ดแบบเดียวกันทั้งหมด — ไอคอนบน + ชื่อ + คำอธิบายสั้นๆ, เปิดลิงก์แท็บใหม่เสมอ
-function IconCard({ icon: Icon, label, description, onClick, href, highlight }) {
+function IconCard({ icon: Icon, label, description, onClick, href, highlight, editMode, onEdit, onDelete }) {
   const content = (
     <>
+      {editMode && (
+        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6 }}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEdit();
+            }}
+            style={iconActionStyle}
+            aria-label={`แก้ไข ${label}`}
+          >
+            <Pencil size={13} color={GOLD_DARK} />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+            }}
+            style={iconActionStyle}
+            aria-label={`ลบ ${label}`}
+          >
+            <Trash2 size={13} color="#DC2626" />
+          </button>
+        </div>
+      )}
       <div
         className="iconCardIcon"
         style={{
@@ -283,6 +463,7 @@ function IconCard({ icon: Icon, label, description, onClick, href, highlight }) 
   );
 
   const style = {
+    position: "relative",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
@@ -297,7 +478,7 @@ function IconCard({ icon: Icon, label, description, onClick, href, highlight }) 
     fontFamily: "inherit",
   };
 
-  if (href) {
+  if (href && !editMode) {
     return (
       <a href={href} target="_blank" rel="noopener noreferrer" className="tap iconCard" style={style}>
         {content}
@@ -311,14 +492,216 @@ function IconCard({ icon: Icon, label, description, onClick, href, highlight }) 
   );
 }
 
+const iconActionStyle = {
+  width: 26,
+  height: 26,
+  borderRadius: 9,
+  border: "1px solid #ECE9E1",
+  background: "#FFFFFF",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+};
+
+function QuickLinkCard({ item, editMode, onEdit, onDelete }) {
+  const Icon = getIcon(item.iconKey);
+  const content = (
+    <>
+      {editMode && (
+        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+          <button type="button" onClick={onEdit} style={iconActionStyle} aria-label={`แก้ไข ${item.label}`}>
+            <Pencil size={13} color={GOLD_DARK} />
+          </button>
+          <button type="button" onClick={onDelete} style={iconActionStyle} aria-label={`ลบ ${item.label}`}>
+            <Trash2 size={13} color="#DC2626" />
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  const style = {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    textDecoration: "none",
+    color: "#111318",
+    background: "#FFFFFF",
+    border: item.logo === "gymmo" ? `1px solid ${GOLD}55` : "1px solid #ECE9E1",
+    borderRadius: 20,
+    padding: "16px 18px",
+    boxShadow: item.logo === "gymmo" ? "0 4px 14px rgba(201,162,39,0.15)" : "none",
+    flex: "1 1 300px",
+    maxWidth: 460,
+    fontFamily: "inherit",
+    cursor: editMode ? "default" : "pointer",
+  };
+
+  const body = (
+    <>
+      <div
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 14,
+          background: item.logo === "gymmo" ? "#FFFFFF" : `${GOLD}1A`,
+          border: item.logo === "gymmo" ? "1px solid #ECE9E1" : "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          overflow: "hidden",
+        }}
+      >
+        {item.logo === "gymmo" ? (
+          <img src={GYMMO_LOGO} alt="Gymmo" style={{ width: "70%", height: "70%", objectFit: "contain" }} />
+        ) : (
+          <Icon size={22} color={GOLD_DARK} />
+        )}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 11, color: GOLD_DARK, fontWeight: 700, letterSpacing: "0.03em" }}>
+          {item.eyebrow || "ลิงก์ด่วน"}
+        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>{item.label}</div>
+        <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>{item.description}</div>
+      </div>
+      {content}
+    </>
+  );
+
+  if (editMode) {
+    return (
+      <div className="tap" style={style}>
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <a href={item.href} target="_blank" rel="noopener noreferrer" className="tap" style={style}>
+      {body}
+    </a>
+  );
+}
+
+function LinkEditor({ draft, onChange, onSubmit, onCancel }) {
+  if (!draft) return null;
+
+  const showEyebrow = draft.scope === "quickLinks";
+  return (
+    <form onSubmit={onSubmit} style={{ marginTop: 14, background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, padding: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+        <input value={draft.label} onChange={(e) => onChange({ ...draft, label: e.target.value })} placeholder="ชื่อปุ่ม" required style={inputStyle} />
+        {showEyebrow && (
+          <input value={draft.eyebrow} onChange={(e) => onChange({ ...draft, eyebrow: e.target.value })} placeholder="หัวข้อย่อยบนการ์ด" style={inputStyle} />
+        )}
+        <input value={draft.description} onChange={(e) => onChange({ ...draft, description: e.target.value })} placeholder="คำอธิบายสั้นๆ" style={inputStyle} />
+        <input value={draft.href} onChange={(e) => onChange({ ...draft, href: e.target.value })} placeholder="https://..." required style={inputStyle} />
+        <select value={draft.iconKey} onChange={(e) => onChange({ ...draft, iconKey: e.target.value })} style={inputStyle}>
+          {LINK_ICON_OPTIONS.map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button type="submit" className="tap" style={primaryButtonStyle}>
+          <Save size={14} /> บันทึก
+        </button>
+        <button type="button" onClick={onCancel} className="tap" style={secondaryButtonStyle}>
+          <X size={14} /> ยกเลิก
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function CategoryEditor({ draft, onChange, onSubmit, onCancel }) {
+  if (!draft) return null;
+
+  return (
+    <form onSubmit={onSubmit} style={{ marginTop: 14, background: "#FFFFFF", border: "1px solid #ECE9E1", borderRadius: 16, padding: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+        <input value={draft.label} onChange={(e) => onChange({ ...draft, label: e.target.value })} placeholder="ชื่อหมวดหมู่" required style={inputStyle} />
+        <input value={draft.description} onChange={(e) => onChange({ ...draft, description: e.target.value })} placeholder="คำอธิบายสั้นๆ" style={inputStyle} />
+        <select value={draft.iconKey} onChange={(e) => onChange({ ...draft, iconKey: e.target.value })} style={inputStyle}>
+          {LINK_ICON_OPTIONS.map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button type="submit" className="tap" style={primaryButtonStyle}>
+          <Save size={14} /> บันทึก
+        </button>
+        <button type="button" onClick={onCancel} className="tap" style={secondaryButtonStyle}>
+          <X size={14} /> ยกเลิก
+        </button>
+      </div>
+    </form>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  border: "1px solid #ECE9E1",
+  borderRadius: 12,
+  padding: "11px 12px",
+  fontSize: 13,
+  fontFamily: "inherit",
+  outline: "none",
+  background: "#FFFFFF",
+};
+
+const primaryButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  border: "none",
+  borderRadius: 12,
+  padding: "10px 14px",
+  background: GOLD_DARK,
+  color: "#FFFFFF",
+  fontWeight: 700,
+  cursor: "pointer",
+  fontFamily: "inherit",
+};
+
+const secondaryButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  border: "1px solid #ECE9E1",
+  borderRadius: 12,
+  padding: "10px 14px",
+  background: "#FFFFFF",
+  color: "#111318",
+  fontWeight: 700,
+  cursor: "pointer",
+  fontFamily: "inherit",
+};
+
 export default function OpsHubStaffResponsive() {
   const [monthSales, setMonthSales] = useState(EMPTY_SALES);
   const [todaySales, setTodaySales] = useState(EMPTY_SALES);
   const [salesLoading, setSalesLoading] = useState(true);
   const [todaySalesLoading, setTodaySalesLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [linkConfig, setLinkConfig] = useState(getStoredLinkConfig);
+  const [linkEditMode, setLinkEditMode] = useState(false);
+  const [linkDraft, setLinkDraft] = useState(null);
+  const [categoryDraft, setCategoryDraft] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+
+  const activeCategoryData = linkConfig.categories.find((c) => c.id === activeCategory);
+
+  useEffect(() => {
+    window.localStorage.setItem(LINK_STORAGE_KEY, JSON.stringify(linkConfig));
+  }, [linkConfig]);
 
   useEffect(() => {
     let cancelled = false;
@@ -345,6 +728,83 @@ export default function OpsHubStaffResponsive() {
       clearInterval(interval);
     };
   }, []);
+
+  function updateLinks(updater) {
+    setLinkConfig((current) => {
+      const next = cloneLinkConfig(current);
+      updater(next);
+      return next;
+    });
+  }
+
+  function saveLinkDraft(e) {
+    e.preventDefault();
+    const item = {
+      label: linkDraft.label.trim(),
+      eyebrow: linkDraft.eyebrow.trim(),
+      description: linkDraft.description.trim(),
+      href: linkDraft.href.trim(),
+      iconKey: linkDraft.iconKey,
+      logo: linkDraft.logo,
+    };
+
+    updateLinks((next) => {
+      let targetItems = next[linkDraft.scope];
+      if (linkDraft.scope === "categoryItems") {
+        targetItems = next.categories.find((category) => category.id === linkDraft.categoryId)?.items || [];
+      }
+      if (linkDraft.mode === "edit") targetItems[linkDraft.index] = item;
+      else targetItems.push(item);
+    });
+    setLinkDraft(null);
+  }
+
+  function saveCategoryDraft(e) {
+    e.preventDefault();
+    const label = categoryDraft.label.trim();
+    const category = {
+      id: categoryDraft.id || makeCategoryId(label),
+      label,
+      description: categoryDraft.description.trim(),
+      iconKey: categoryDraft.iconKey,
+      items: categoryDraft.items,
+    };
+
+    updateLinks((next) => {
+      if (categoryDraft.mode === "edit") next.categories[categoryDraft.index] = category;
+      else next.categories.push(category);
+    });
+    setCategoryDraft(null);
+  }
+
+  function deleteLink(scope, categoryId, index) {
+    if (!window.confirm("ลบลิงก์นี้ใช่ไหม?")) return;
+    updateLinks((next) => {
+      if (scope === "categoryItems") {
+        const category = next.categories.find((item) => item.id === categoryId);
+        if (category) category.items.splice(index, 1);
+      } else {
+        next[scope].splice(index, 1);
+      }
+    });
+  }
+
+  function deleteCategory(index) {
+    if (!window.confirm("ลบหมวดหมู่นี้และลิงก์ทั้งหมดในหมวดใช่ไหม?")) return;
+    const deleted = linkConfig.categories[index];
+    updateLinks((next) => {
+      next.categories.splice(index, 1);
+    });
+    if (deleted?.id === activeCategory) setActiveCategory(null);
+    setCategoryDraft(null);
+  }
+
+  function resetLinks() {
+    if (!window.confirm("รีเซ็ตลิงก์ทั้งหมดกลับค่าเริ่มต้นใช่ไหม?")) return;
+    setLinkConfig(cloneLinkConfig(DEFAULT_LINK_CONFIG));
+    setLinkDraft(null);
+    setCategoryDraft(null);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -397,6 +857,7 @@ export default function OpsHubStaffResponsive() {
         .dashCard { padding: 8px 12px; min-width: 0; }
         .dashLabel { font-size: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .dashValue { font-size: 13px; white-space: nowrap; }
+        .headerManageButton { padding: 9px 10px; border-radius: 12px; }
         .labelFull { display: none; }
         .labelShort { display: inline; }
         .kanbanGrid { display: grid; grid-template-columns: 1fr; gap: 16px; }
@@ -408,6 +869,7 @@ export default function OpsHubStaffResponsive() {
           .dashCard { padding: 10px 14px; }
           .dashLabel { font-size: 10px; }
           .dashValue { font-size: 16px; }
+          .headerManageButton { padding: 10px 12px; }
           .labelFull { display: inline; }
           .labelShort { display: none; }
         }
@@ -493,6 +955,35 @@ export default function OpsHubStaffResponsive() {
                 </div>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setLinkEditMode((value) => !value);
+                setLinkDraft(null);
+                setCategoryDraft(null);
+              }}
+              className="tap headerManageButton"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                flexShrink: 0,
+                border: "1px solid #FFFFFF35",
+                background: linkEditMode ? "#FFFFFF" : "#FFFFFF18",
+                color: linkEditMode ? GOLD_DARK : "#FFFFFF",
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+              aria-label={linkEditMode ? "ปิดโหมดจัดการลิงก์" : "เปิดโหมดจัดการลิงก์"}
+            >
+              <Settings size={14} />
+              <span className="labelShort">{linkEditMode ? "เสร็จ" : "แก้"}</span>
+              <span className="labelFull">{linkEditMode ? "เสร็จ" : "จัดการลิงก์"}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -500,94 +991,47 @@ export default function OpsHubStaffResponsive() {
       <div className="wrap">
         {activeCategory === null ? (
           <>
-            {/* Gymmo Console + Task Tracker — ลิงก์ด่วน */}
-            <div style={{ marginTop: 24, display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <a
-                href="https://console.gymmo.app/th"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tap"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  textDecoration: "none",
-                  color: "#111318",
-                  background: "#FFFFFF",
-                  border: `1px solid ${GOLD}55`,
-                  borderRadius: 20,
-                  padding: "16px 18px",
-                  boxShadow: "0 4px 14px rgba(201,162,39,0.15)",
-                  flex: "1 1 300px",
-                  maxWidth: 460,
-                }}
-              >
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: "#FFFFFF",
-                    border: "1px solid #ECE9E1",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                    overflow: "hidden",
-                  }}
-                >
-                  <img src={GYMMO_LOGO} alt="Gymmo" style={{ width: "70%", height: "70%", objectFit: "contain" }} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: GOLD_DARK, fontWeight: 700, letterSpacing: "0.03em" }}>
-                    FITNESS MANAGEMENT
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>Gymmo Console</div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>สมาชิก · ธุรกรรม · บิลลิ่ง</div>
-                </div>
-              </a>
+            <div style={{ marginTop: 24 }}>
+              <div className="sectionTitle" style={{ fontWeight: 700 }}>ลิงก์ด่วน</div>
+            </div>
 
-              <a
-                href="https://docs.google.com/spreadsheets/d/11yqqQhfpjiDm_Trp9_8mhmP-kOXz7XrN7SZab4HL5sQ/edit?gid=1870528920#gid=1870528920"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tap"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  textDecoration: "none",
-                  color: "#111318",
-                  background: "#FFFFFF",
-                  border: "1px solid #ECE9E1",
-                  borderRadius: 20,
-                  padding: "16px 18px",
-                  flex: "1 1 300px",
-                  maxWidth: 460,
-                }}
-              >
-                <div
-                  style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 14,
-                    background: `${GOLD}1A`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
+            {linkEditMode && (
+              <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryDraft(null);
+                    setLinkDraft(emptyLinkDraft("quickLinks"));
                   }}
+                  className="tap"
+                  style={secondaryButtonStyle}
                 >
-                  <ListChecks size={22} color={GOLD_DARK} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: GOLD_DARK, fontWeight: 700, letterSpacing: "0.03em" }}>
-                    งานที่ต้องทำ
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, marginTop: 2 }}>Task Tracker</div>
-                  <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>เช็คงาน · สถานะ</div>
-                </div>
-              </a>
+                  <Plus size={14} /> เพิ่มลิงก์ด่วน
+                </button>
+                <button type="button" onClick={resetLinks} className="tap" style={secondaryButtonStyle}>
+                  <RotateCcw size={14} /> รีเซ็ต
+                </button>
+              </div>
+            )}
+
+            {linkEditMode && linkDraft?.scope === "quickLinks" && (
+              <LinkEditor draft={linkDraft} onChange={setLinkDraft} onSubmit={saveLinkDraft} onCancel={() => setLinkDraft(null)} />
+            )}
+
+            {/* Gymmo Console + Task Tracker — ลิงก์ด่วน */}
+            <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              {linkConfig.quickLinks.map((item, index) => (
+                <QuickLinkCard
+                  key={`${item.label}-${index}`}
+                  item={item}
+                  editMode={linkEditMode}
+                  onEdit={() => {
+                    setCategoryDraft(null);
+                    setLinkDraft(linkToDraft("quickLinks", null, index, item));
+                  }}
+                  onDelete={() => deleteLink("quickLinks", null, index)}
+                />
+              ))}
             </div>
 
             {/* ยอดขายเดือนนี้ / วันนี้ — เหมือน Ops Hub */}
@@ -781,24 +1225,80 @@ export default function OpsHubStaffResponsive() {
                 padding: 16,
               }}
             >
-              <div className="sectionTitle" style={{ fontWeight: 700, marginBottom: 14 }}>ที่ใช้บ่อย</div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+                <div className="sectionTitle" style={{ fontWeight: 700 }}>ที่ใช้บ่อย</div>
+                {linkEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCategoryDraft(null);
+                      setLinkDraft(emptyLinkDraft("frequentItems"));
+                    }}
+                    className="tap"
+                    style={secondaryButtonStyle}
+                  >
+                    <Plus size={14} /> เพิ่ม
+                  </button>
+                )}
+              </div>
+              {linkEditMode && linkDraft?.scope === "frequentItems" && (
+                <LinkEditor draft={linkDraft} onChange={setLinkDraft} onSubmit={saveLinkDraft} onCancel={() => setLinkDraft(null)} />
+              )}
               <div className="frequentGrid">
-                {frequentItems.map((item) => (
-                  <IconCard key={item.label} icon={item.icon} label={item.label} description={item.description} href={item.href} highlight />
+                {linkConfig.frequentItems.map((item, index) => (
+                  <IconCard
+                    key={`${item.label}-${index}`}
+                    icon={getIcon(item.iconKey)}
+                    label={item.label}
+                    description={item.description}
+                    href={item.href}
+                    highlight
+                    editMode={linkEditMode}
+                    onEdit={() => {
+                      setCategoryDraft(null);
+                      setLinkDraft(linkToDraft("frequentItems", null, index, item));
+                    }}
+                    onDelete={() => deleteLink("frequentItems", null, index)}
+                  />
                 ))}
               </div>
             </div>
 
             {/* หมวดหมู่อื่นๆ — คลิกเข้าไปดูลิงก์ข้างใน */}
             <div style={{ marginTop: 32 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
+                <div className="sectionTitle" style={{ fontWeight: 700 }}>หมวดหมู่</div>
+                {linkEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLinkDraft(null);
+                      setCategoryDraft(emptyCategoryDraft());
+                    }}
+                    className="tap"
+                    style={secondaryButtonStyle}
+                  >
+                    <Plus size={14} /> เพิ่มหมวด
+                  </button>
+                )}
+              </div>
+              {linkEditMode && categoryDraft && (
+                <CategoryEditor draft={categoryDraft} onChange={setCategoryDraft} onSubmit={saveCategoryDraft} onCancel={() => setCategoryDraft(null)} />
+              )}
               <div className="grid">
-                {categories.map((cat) => (
+                {linkConfig.categories.map((cat, index) => (
                   <IconCard
                     key={cat.id}
-                    icon={cat.icon}
+                    icon={getIcon(cat.iconKey)}
                     label={cat.label}
                     description={cat.description}
                     onClick={() => setActiveCategory(cat.id)}
+                    editMode={linkEditMode}
+                    onEdit={() => {
+                      setLinkDraft(null);
+                      setCategoryDraft(categoryToDraft(index, cat));
+                    }}
+                    onDelete={() => deleteCategory(index)}
                   />
                 ))}
               </div>
@@ -826,15 +1326,41 @@ export default function OpsHubStaffResponsive() {
                 <ChevronLeft size={18} color={GOLD_DARK} />
               </button>
               <div className="sectionTitle" style={{ fontWeight: 700 }}>
-                {categories.find((c) => c.id === activeCategory)?.label}
+                {activeCategoryData?.label}
               </div>
+              {linkEditMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryDraft(null);
+                    setLinkDraft(emptyLinkDraft("categoryItems", activeCategory));
+                  }}
+                  className="tap"
+                  style={{ ...secondaryButtonStyle, marginLeft: "auto" }}
+                >
+                  <Plus size={14} /> เพิ่ม
+                </button>
+              )}
             </div>
+            {linkEditMode && linkDraft?.scope === "categoryItems" && linkDraft.categoryId === activeCategory && (
+              <LinkEditor draft={linkDraft} onChange={setLinkDraft} onSubmit={saveLinkDraft} onCancel={() => setLinkDraft(null)} />
+            )}
             <div className="grid" style={{ marginTop: 16 }}>
-              {categories
-                .find((c) => c.id === activeCategory)
-                ?.items.map((item) => (
-                  <IconCard key={item.label} icon={item.icon} label={item.label} description={item.description} href={item.href} />
-                ))}
+              {activeCategoryData?.items.map((item, index) => (
+                <IconCard
+                  key={`${item.label}-${index}`}
+                  icon={getIcon(item.iconKey)}
+                  label={item.label}
+                  description={item.description}
+                  href={item.href}
+                  editMode={linkEditMode}
+                  onEdit={() => {
+                    setCategoryDraft(null);
+                    setLinkDraft(linkToDraft("categoryItems", activeCategory, index, item));
+                  }}
+                  onDelete={() => deleteLink("categoryItems", activeCategory, index)}
+                />
+              ))}
             </div>
           </>
         )}
