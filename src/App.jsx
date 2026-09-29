@@ -74,7 +74,7 @@ function buildEmployeeTargetRows(employeeSales) {
     .filter((row) => !targetNames.has(normalizeName(row.name)))
     .map((row) => ({ ...row, target: null }));
 
-  return [...targetRows, ...extraRows].sort((a, b) => (b.pt || 0) - (a.pt || 0)).slice(0, 3);
+  return [...targetRows, ...extraRows].sort((a, b) => (b.pt || 0) - (a.pt || 0));
 }
 
 const GYMMO_LOGO =
