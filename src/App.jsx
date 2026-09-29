@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { fetchStaffSales } from "./services/revenue";
 import {
   Dumbbell,
   TrendingUp,
@@ -27,7 +28,6 @@ import {
 const GOLD = "#C9A227";
 const GOLD_DARK = "#7A5E12";
 
-const REVENUE_SHEET_ID = "11JY-u1njafkk_zIQSX4N-FQIRvvXGoTwR9MWkNkT3s4";
 const EMPTY_SALES = { mb: 0, pt: 0, club: 0 };
 const CLUB_TARGET = 1500000;
 const PT_TARGET = 750000;
@@ -37,7 +37,6 @@ const EMPLOYEE_TARGETS = [
   { name: "เพชร", target: 80000 },
   { name: "ดีม", target: 80000 },
   { name: "Copter", target: 80000 },
-  { name: "แก้ม", target: 80000 },
 ];
 const LEADERBOARD_EXCLUDED_NAMES = ["Gain Optima"];
 const LINK_STORAGE_KEY = "gainOptimaStaffLinksV1";
@@ -54,69 +53,6 @@ function normalizeName(name) {
 function isLeaderboardExcludedName(name) {
   const normalizedName = normalizeName(name);
   return LEADERBOARD_EXCLUDED_NAMES.some((excludedName) => normalizeName(excludedName) === normalizedName);
-}
-
-// รันคำสั่ง query (SELECT ... GROUP BY ...) บนแท็บ DATA แบบ real-time ไม่ต้องมี backend
-async function gvizQuery(tq) {
-  const sheetName = encodeURIComponent("DATA");
-  const url = `https://docs.google.com/spreadsheets/d/${REVENUE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${sheetName}&tq=${encodeURIComponent(tq)}`;
-  const res = await fetch(url);
-  const text = await res.text();
-  const jsonStart = text.indexOf("{");
-  const jsonEnd = text.lastIndexOf("}");
-  const json = JSON.parse(text.substring(jsonStart, jsonEnd + 1));
-  const rows = (json.table && json.table.rows) || [];
-  return rows.map((r) => ({ label: r.c && r.c[0] ? r.c[0].v : null, value: r.c && r.c[1] ? r.c[1].v || 0 : 0 }));
-}
-
-async function fetchMonthSales() {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-  const rows = await gvizQuery(`SELECT E, SUM(I) WHERE C = ${month} AND D = ${year} GROUP BY E`);
-  return buildSalesSummary(rows);
-}
-
-async function fetchTodaySales() {
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const rows = await gvizQuery(`SELECT E, SUM(I) WHERE B = date '${dateStr}' GROUP BY E`);
-  return buildSalesSummary(rows);
-}
-
-function buildSalesSummary(rows) {
-  let mb = 0;
-  let pt = 0;
-  rows.forEach((r) => {
-    if (r.label === "MB") mb = r.value;
-    if (r.label === "PT") pt = r.value;
-  });
-  return { mb, pt, club: mb + pt };
-}
-
-async function fetchEmployeeSales() {
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
-  const [mbRows, ptRows] = await Promise.all([
-    gvizQuery(`SELECT K, SUM(I) WHERE E = 'MB' AND C = ${month} AND D = ${year} GROUP BY K`),
-    gvizQuery(`SELECT K, SUM(I) WHERE E = 'PT' AND C = ${month} AND D = ${year} GROUP BY K`),
-  ]);
-  const map = {};
-  mbRows.forEach((r) => {
-    if (!r.label) return;
-    map[r.label] = map[r.label] || { mb: 0, pt: 0 };
-    map[r.label].mb = r.value;
-  });
-  ptRows.forEach((r) => {
-    if (!r.label) return;
-    map[r.label] = map[r.label] || { mb: 0, pt: 0 };
-    map[r.label].pt = r.value;
-  });
-  return Object.entries(map)
-    .map(([name, v]) => ({ name, mb: v.mb, pt: v.pt }))
-    .filter((row) => !isLeaderboardExcludedName(row.name))
-    .sort((a, b) => b.pt - a.pt);
 }
 
 function buildEmployeeTargetRows(employeeSales) {
@@ -138,7 +74,7 @@ function buildEmployeeTargetRows(employeeSales) {
     .filter((row) => !targetNames.has(normalizeName(row.name)))
     .map((row) => ({ ...row, target: null }));
 
-  return [...targetRows, ...extraRows].sort((a, b) => (b.pt || 0) - (a.pt || 0));
+  return [...targetRows, ...extraRows].sort((a, b) => (b.pt || 0) - (a.pt || 0)).slice(0, 3);
 }
 
 const GYMMO_LOGO =
@@ -707,10 +643,11 @@ export default function OpsHubStaffResponsive() {
     let cancelled = false;
     async function load() {
       try {
-        const [month, today] = await Promise.all([fetchMonthSales(), fetchTodaySales()]);
+        const dashboard = await fetchStaffSales();
         if (!cancelled) {
-          setMonthSales(month);
-          setTodaySales(today);
+          setMonthSales(dashboard.monthSales);
+          setTodaySales(dashboard.todaySales);
+          setLeaderboard(dashboard.employeeSales.filter((row) => !isLeaderboardExcludedName(row.name)));
         }
       } catch (e) {
         console.error("โหลดยอดขาย real-time ไม่สำเร็จ", e);
@@ -718,6 +655,7 @@ export default function OpsHubStaffResponsive() {
         if (!cancelled) {
           setSalesLoading(false);
           setTodaySalesLoading(false);
+          setLeaderboardLoading(false);
         }
       }
     }
@@ -805,26 +743,6 @@ export default function OpsHubStaffResponsive() {
     setLinkDraft(null);
     setCategoryDraft(null);
   }
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadLeaderboard() {
-      try {
-        const list = await fetchEmployeeSales();
-        if (!cancelled) setLeaderboard(list);
-      } catch (e) {
-        console.error("โหลด leaderboard ไม่สำเร็จ", e);
-      } finally {
-        if (!cancelled) setLeaderboardLoading(false);
-      }
-    }
-    loadLeaderboard();
-    const interval = setInterval(loadLeaderboard, 60000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
 
   return (
     <div
