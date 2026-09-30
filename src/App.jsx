@@ -37,7 +37,7 @@ const EMPLOYEE_TARGETS = [
   { name: "แก้ม", target: 80000 },
   { name: "เพชร", target: 80000 },
   { name: "ดีม", target: 80000 },
-  { name: "Copter", target: 80000 },
+  { name: "คอปเตอร์", target: 80000 },
 ];
 const LEADERBOARD_EXCLUDED_NAMES = ["Gain Optima"];
 const LINK_STORAGE_KEY = "gainOptimaStaffLinksV1";
